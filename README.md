@@ -106,6 +106,10 @@ selector.min.js (**4.75 KB**)
 ### Unsupported jQuery functionality
 * jQuery object
 * all jQuery plugins
+* jQuery UI
+* jQuery.fx
+* depricated functions
+* more...
 
 
 ## Disclaimer

@@ -97,11 +97,11 @@ selector.min.js (**4.75 KB**)
 * width
 
 ### Supported jQuery objects
-$
+* $
 
 ### Supported jQuery functions
-$.ajax
-$.extend
+* $.ajax
+* $.extend
 
 ### Unsupported jQuery functionality
 * jQuery object

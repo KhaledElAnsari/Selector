@@ -106,3 +106,7 @@ $.extend
 ### Unsupported jQuery functionality
 * jQuery object
 * all jQuery plugins
+
+
+## Disclaimer
+This project is in beta and has been tested in Chrome 51+, IE8+ (using ie-shim.js), Safari 9+, and iOS 6+. Use at your own risk. 

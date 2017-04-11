@@ -1,5 +1,7 @@
 # Selector
-A micro javascript library used as a replacement for jQuery, weighing in at nearly 5KB.
+A micro javascript library used as a replacement for jQuery, weighing in at nearly 5KB. 
+
+The aim of this project is to build a replacement for jQuery while constantly finding optimizations to shrink the overall filesize of the library, keeping the minified, gzip compressed file under 5KB while simultaniously adding more support for jQuery features.
 
 ### file size comparison between jQuery and selector.js
 

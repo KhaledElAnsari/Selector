@@ -1,7 +1,5 @@
 # Selector
-A modern micro JS library that replaces the most common functionality of jQuery. 
-
-This jQuery replacement is meant to be used on projects that require jQuery-like functionality without the jQuery bloat.
+A micro javascript library used as a replacement for jQuery, weighing in at nearly 5KB.
 
 ### file size comparison between jQuery and selector.js
 

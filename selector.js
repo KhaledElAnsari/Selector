@@ -1,23 +1,21 @@
-﻿// Websilk Selector Micro-Framework (jQuery replacement)
+﻿// selector.js - micro library as a jQuery replacement
 // https://github.com/Websilk/Selector
+// copyright 2017 by Mark Entingh
 
 //private selector object
 (function () {
 
     //global variables
-    var pxStyles = ['top', 'right', 'bottom', 'left', 'width', 'height', 'maxWidth', 'maxHeight'];
-    var pxStylesPrefix = ['border', 'padding', 'margin'];
-    var pxStylesSuffix = ['Top', 'Right', 'Bottom', 'Left'];
-    var listeners = []; //used for capturing event listeners from $('').on 
+    var pxStyles = ['top', 'right', 'bottom', 'left', 'width', 'height', 'maxWidth', 'maxHeight'],
+        pxStylesPrefix = ['border', 'padding', 'margin'],
+        pxStylesSuffix = ['Top', 'Right', 'Bottom', 'Left'],
+        listeners = []; //used for capturing event listeners from $('selector').on 
     //listeners = [{ elem: null, events: [{ name: '', list: [] }] }];
 
     // internal functions ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     function select(sel) {
         //main function, instantiated via $(sel)
-        var elems;
-        if (sel) { elems = query(document, sel); } else { elems = []; }
-        //this.length = this.length;
-        this.push(elems);
+        if (sel) { this.push(query(document, sel)); }
         return this;
     }
 
@@ -25,50 +23,63 @@
         //gets a list of elements from a CSS selector
         if (elem == null) { return [];}
         var elems = [];
-        if (sel != null && typeof sel != 'object' && sel != '') {
+        if (typeof sel == 'object') {
+            //elements are already defined instead of using a selector /////////////////////////////////////
+            if (sel.length > 0 && !sel.nodeType) {
+                elems = sel;
+            } else {
+                if (Array.isArray(sel)) {
+                    elems = sel;
+                } else {
+                    elems = [sel];
+                }
+            }
+        } else if (sel != null && sel != '') {
             //only use vanilla Javascript to select DOM elements based on a CSS selector (Chrome 1, IE 9, Safari 3.2, Firefox 3.5, Opera 10)
-            var sels = sel.split(',').map(Function.prototype.call, String.prototype.trim);
-            var el;
-            var optimize = true;
+            var sels = sel.split(',').map(function (s) { return s.trim(); }),
+                el, optimize = true, n, s, t, u, v;
             for (var x = 0; x < sels.length; x++) {
             //check if we can optimize our query selector
-                var s = sels[x];
-                if (s.indexOf('#') == 0 && s.indexOf(' ') < 0 && elem == document && s.indexOf(':') < 0) {
-                } else if (s.indexOf('#') < 0 && s.indexOf('.') < 0 && s.indexOf(' ') < 0 && s.indexOf(':') < 0) {
-                    if (s.indexOf("[") >= 0 && elem != document) { optimize = false;}
-                } else if (s.indexOf('.') == 0 && s.indexOf('.', 1) < 0 && s.indexOf(' ') < 0 && s.indexOf(':') < 0) {
+                s = sels[x];
+                n = s.indexOf(' ') < 0 && s.indexOf(':') < 0;
+                t = elem == document;
+                u = s.indexOf('.');
+                v = s.indexOf('#');
+                if (v == 0 && t && n) {
+                } else if (v < 0 && u < 0 && n) {
+                    if (s.indexOf("[") >= 0 && !t) { optimize = false;}
+                } else if (u == 0 && s.indexOf('.', 1) < 0 && n) {
                 }else if(s == '*'){
                 }else{optimize = false; break;}
             }
-            if (optimize == true) {
+            if (optimize) {
                 //query is optimized, so don't use getQuerySelectorAll
                 sels.forEach(function (s) {
+                    n = s.indexOf(' ') < 0 && s.indexOf(':') < 0;
                     if (s.indexOf('#') == 0) {
-                        if (s.indexOf(' ') < 0 && elem == document && s.indexOf(':') < 0) {
+                        if (elem == document && n) {
                             //get specific element by ID
                             el = document.getElementById(s.replace('#', ''));
                             if (el) { elems.push(el); }
                         }
-                    } else if (s.indexOf('.') < 0 && s.indexOf(' ') < 0 && s.indexOf(':') < 0) {
-                        //get elements by tag name
-                        if (elem == document) {
-                            el = document.getElementsByTagName(s);
-                        } else {
-                            el = elem.querySelectorAll(s);
-                        }
-                        if (el) {
-                            if (el.length > 0) {
+                    } else if (n){
+                        if (s.indexOf('.') < 0) {
+                            //get elements by tag name
+                            if (elem == document) {
+                                el = document.getElementsByTagName(s);
+                            } else {
+                                el = elem.querySelectorAll(s);
+                            }
+                            if (el) {
                                 for (var x = 0; x < el.length; x++) {
                                     //convert node list into array
                                     elems.push(el[x]);
                                 }
                             }
-                        }
-                    } else if (s.split('.').length == 2 && s.indexOf(' ') < 0 && s.indexOf(':') < 0) {
-                        //get elements by class name(s)
-                        el = elem.getElementsByClassName(s.replace('.', ''));
-                        if (el) {
-                            if (el.length > 0) {
+                        } else if (s.indexOf('.') == 0) {
+                            //get elements by class name(s)
+                            el = elem.getElementsByClassName(s.substr(1));
+                            if (el) {
                                 for (var x = 0; x < el.length; x++) {
                                     //convert node list into array
                                     elems.push(el[x]);
@@ -80,29 +91,12 @@
             } else {
                 //query is not optimized, last resort is to use querySelectorAll
                 el = elem.querySelectorAll(sel);
-                for (var x = 0; x < el.length; x++) {
-                    //convert node list into array
-                    elems.push(el[x]);
+                if (el) {
+                    for (var x = 0; x < el.length; x++) {
+                        //convert node list into array
+                        elems.push(el[x]);
+                    }
                 }
-            }
-        } else if (typeof sel == 'object') {
-            //elements are already defined instead of using a selector /////////////////////////////////////
-            if (sel.length > 0 && !sel.nodeType) {
-                elems = sel;
-            } else {
-                if (Array.isArray(sel)) {
-                    elems = sel;
-                } else {
-                    elems = [sel];
-                }
-            }
-        } else {
-            elems.length = 0;
-        }
-        for (var x = 0; x < elems.length; x++) {
-            if (elems[x] == undefined) {
-                console.log(elems);
-                break;
             }
         }
         return elems;
@@ -126,9 +120,7 @@
         if (str.indexOf('-') < 0) {
             return str
         }else{
-            var name = '';
-            var chr = '';
-            var cap = false;
+            var name = '', chr = '', cap = false;
             for (var x = 0; x < str.length; x++) {
                 chr = str[x];
                 if (chr == '-') {
@@ -196,7 +188,7 @@
         //get a string from object (either string, number, or function)
         if (typeof obj == 'function') {
             //handle object as function (get value from object function execution)
-            return obj();
+            return getObj(obj());
         }
         return obj;
     }
@@ -223,29 +215,27 @@
 
     function insertContent(obj, elements, stringFunc, objFunc) {
         //checks type of object and execute callback functions depending on object type
-        if (typeof obj == 'string') {
-            elements.forEach(function (e) {
-                stringFunc(e);
-            });
-        } else if (typeof obj == 'object') {
+        if (typeof obj == 'object') {
             elements.forEach(function (e) {
                 objFunc(e);
+            });
+        } else {
+            elements.forEach(function (e) {
+                stringFunc(e);
             });
         }
         return this;
     }
 
     function clone(elems) {
-        var s = new select();
-        s.push(elems);
-        return s;
+        return (new select()).push(elems);
     }
 
     function hover(elem, onEnter, onLeave) {
         var el = $(elem);
         var entered = false;
         el.on('mouseenter', function (e) {
-            if (entered == false) {
+            if (!entered) {
                 if (onEnter) { onEnter(e); }
                 entered = true;
             }

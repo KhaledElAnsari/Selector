@@ -3,6 +3,8 @@ A micro JavaScript library used as a replacement for jQuery, weighing in at near
 
 The aim of this project is to build a replacement for jQuery while constantly finding optimizations to shrink the overall filesize of the library, keeping the minified, gzip compressed file under 5KB while simultaniously adding more support for jQuery features.
 
+[View Demo](https://jsfiddle.net/markentingh/L2o0qrwy/)
+
 ### File size comparison between jQuery and selector.js
 
 #### jquery (uncompressed)

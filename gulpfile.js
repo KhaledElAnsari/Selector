@@ -18,3 +18,7 @@ gulp.task('selector-min', function () {
         .pipe(uglify())
         .pipe(gulp.dest('.', { overwrite: true }));
 });
+
+gulp.task('watch', function(){
+    gulp.watch('selector.js', ['selector', 'selector-min']);
+});

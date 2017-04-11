@@ -6,10 +6,10 @@
 (function () {
 
     //global variables
-    var pxStyles = ['top', 'right', 'bottom', 'left', 'width', 'height', 'maxWidth', 'maxHeight'],
-        pxStylesPrefix = ['border', 'padding', 'margin'],
-        pxStylesSuffix = ['Top', 'Right', 'Bottom', 'Left'],
-        listeners = []; //used for capturing event listeners from $('selector').on 
+    var pxStyles = ['top', 'right', 'bottom', 'left', 'width', 'height', 'maxWidth', 'maxHeight', 'fontSize'];
+    var pxStylesPrefix = ['border', 'padding', 'margin'];
+    var pxStylesSuffix = ['Top', 'Right', 'Bottom', 'Left'];
+    var listeners = []; //used for capturing event listeners from $('').on 
     //listeners = [{ elem: null, events: [{ name: '', list: [] }] }];
 
     // internal functions ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,6 +157,12 @@
         }
     }
 
+    function styleProperName(str){
+        var name = str.split('-');
+        if(name.length > 1){name[1] = name[1][0].toUpperCase() + name[1].substr(1);}
+        return name.join('');
+    }
+
     function getStyle(e, name) {
         return getComputedStyle(e).getPropertyValue(name);
     }
@@ -165,8 +171,8 @@
         //properly set a style for an element
         if (e.nodeName == '#text') { return;}
         var v = val;
-        var n = name;
-
+        var n = styleProperName(name);
+        
         //check for empty value
         if (v == '' || v == null) { e.style[n] = v == '' ? null : v; return; }
 
@@ -194,11 +200,10 @@
     }
 
     function isArray(obj, arrayFunc) {
-        //
-        if (Array.isArray(obj)) {
+        if (typeof obj.splice === 'function') {
             //handle content as array
             for (var x = 0; x < obj.length; x++) {
-                arrayFunc(obj[x]);
+                arrayFunc.call(this,obj[x]);
             }
             return true;
         }
@@ -215,14 +220,13 @@
 
     function insertContent(obj, elements, stringFunc, objFunc) {
         //checks type of object and execute callback functions depending on object type
-        if (typeof obj == 'object') {
-            elements.forEach(function (e) {
-                objFunc(e);
-            });
-        } else {
-            elements.forEach(function (e) {
-                stringFunc(e);
-            });
+        var type = typeof obj == 'string';
+        for(var x = 0;x<elements.length;x++){
+            if(type){
+                stringFunc(elements[x]);
+            }else{
+                objFunc(elements[x]); 
+            }
         }
         return this;
     }
@@ -322,10 +326,9 @@
     select.prototype.append = function (content) {
         //Append content to the DOM inside each individual element in the collection. 
         //The content can be an HTML string, a DOM node or an array of nodes.
+
         var obj = getObj(content);
-        if (isArray(obj, this.append) || obj == null) { return this; }
-
-
+        if (isArray.call(this, obj, this.append) || obj == null) { return this; }
         insertContent(obj, this,
             function (e) { e.insertAdjacentHTML('beforeend', obj); },
             function (e) { e.appendChild(obj); }

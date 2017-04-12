@@ -5,6 +5,9 @@ The aim of this project is to build a replacement for jQuery while constantly fi
 
 [View Demo](https://jsfiddle.net/markentingh/L2o0qrwy/)
 
+### Add to your project via public CDN from jsDelivr
+[https://cdn.jsdelivr.net/selectorjs/0.9.1/selector.min.js](https://cdn.jsdelivr.net/selectorjs/0.9.1/selector.min.js)
+
 ### File size comparison between jQuery and selector.js
 
 #### jquery (uncompressed)

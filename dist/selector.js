@@ -19,84 +19,57 @@
         return this;
     }
 
-    function query(elem, sel) {
+    function query(target, sel) {
         //gets a list of elements from a CSS selector
-        if (elem == null) { return [];}
+        if (target == null) { return [];}
         var elems = [];
-        if (typeof sel == 'object') {
+        if (isObj(sel)) {
             //elements are already defined instead of using a selector /////////////////////////////////////
-            if (sel.length > 0 && !sel.nodeType) {
-                elems = sel;
-            } else {
-                if (Array.isArray(sel)) {
-                    elems = sel;
-                } else {
-                    elems = [sel];
-                }
-            }
+            elems = isArray(sel) ? sel : [sel];
         } else if (sel != null && sel != '') {
             //only use vanilla Javascript to select DOM elements based on a CSS selector (Chrome 1, IE 9, Safari 3.2, Firefox 3.5, Opera 10)
             var sels = sel.split(',').map(function (s) { return s.trim(); }),
                 el, optimize = true, n, s, t, u, v;
+
             for (var x = 0; x < sels.length; x++) {
-            //check if we can optimize our query selector
+                //check if we can optimize our query selector
+                optimize = true;
+                el = null;
                 s = sels[x];
                 n = s.indexOf(' ') < 0 && s.indexOf(':') < 0;
-                t = elem == document;
+                t = target == document;
                 u = s.indexOf('.');
                 v = s.indexOf('#');
-                if (v == 0 && t && n) {
-                } else if (v < 0 && u < 0 && n) {
+                if (n && v == 0 && t) {
+                } else if (n && v < 0 && u < 0) {
                     if (s.indexOf("[") >= 0 && !t) { optimize = false;}
-                } else if (u == 0 && s.indexOf('.', 1) < 0 && n) {
+                } else if (n && u == 0 && s.indexOf('.', 1) < 0) {
                 }else if(s == '*'){
-                }else{optimize = false; break;}
-            }
-            if (optimize) {
-                //query is optimized, so don't use getQuerySelectorAll
-                sels.forEach(function (s) {
-                    n = s.indexOf(' ') < 0 && s.indexOf(':') < 0;
-                    if (s.indexOf('#') == 0) {
-                        if (elem == document && n) {
+                }else{optimize = false;}
+
+                if(optimize){
+                    //query is optimized, so don't use getQuerySelectorAll
+                    if (v == 0) {
+                        if (t && n) {
                             //get specific element by ID
-                            el = document.getElementById(s.replace('#', ''));
-                            if (el) { elems.push(el); }
+                            el = document.getElementById(s.substr(1));
+                            if (el) { elems.push(el);}
                         }
                     } else if (n){
-                        if (s.indexOf('.') < 0) {
-                            //get elements by tag name
-                            if (elem == document) {
-                                el = document.getElementsByTagName(s);
-                            } else {
-                                el = elem.querySelectorAll(s);
-                            }
-                            if (el) {
-                                for (var x = 0; x < el.length; x++) {
-                                    //convert node list into array
-                                    elems.push(el[x]);
-                                }
-                            }
-                        } else if (s.indexOf('.') == 0) {
-                            //get elements by class name(s)
-                            el = elem.getElementsByClassName(s.substr(1));
-                            if (el) {
-                                for (var x = 0; x < el.length; x++) {
-                                    //convert node list into array
-                                    elems.push(el[x]);
-                                }
-                            }
-                        }
+                            //get elements by tag name or by class name(s)
+                        el = u < 0 ? 
+                            el = target.getElementsByTagName(s) : 
+                            target.getElementsByClassName(s.replace(/\./g, ' '));
                     }
-                });
-            } else {
-                //query is not optimized, last resort is to use querySelectorAll
-                el = elem.querySelectorAll(sel);
-                if (el) {
-                    for (var x = 0; x < el.length; x++) {
-                        //convert node list into array
-                        elems.push(el[x]);
-                    }
+                }else{
+                    //query is not optimized, last resort is to use querySelectorAll (slow)
+                    el = target.querySelectorAll(sel);
                 }
+                if (el) {
+                    //convert node list into array
+                    for(var i = el.length; i--; elems.unshift(el[i]));
+                }
+                if(!optimize){return elems;}
             }
         }
         return elems;
@@ -117,25 +90,10 @@
     function styleName(str) {
         //gets the proper style name from shorthand string
         //for example: border-width translates to borderWidth;
-        if (str.indexOf('-') < 0) {
-            return str
-        }else{
-            var name = '', chr = '', cap = false;
-            for (var x = 0; x < str.length; x++) {
-                chr = str[x];
-                if (chr == '-') {
-                    cap = true;
-                } else {
-                    if (cap == true) {
-                        cap = false;
-                        name += chr.toUpperCase();
-                    } else {
-                        name += chr;
-                    }
-                }
-            }
-            return name;
-        }
+        if (str.indexOf('-') < 0) { return str; }
+        var name = str.split('-');
+        if(name.length > 1){name[1] = name[1][0].toUpperCase() + name[1].substr(1);}
+        return name.join('');
     }
 
     function styleShorthand(str) {
@@ -143,8 +101,7 @@
         var reg = new RegExp('[A-Z]');
         if (str.match(reg)) {
             //has capital letter
-            var name = '';
-            var chr = '';
+            var name = '', chr;
             for (var x = 0; x < str.length; x++) {
                 chr = str[x];
                 if (chr.match(reg)) {
@@ -157,12 +114,6 @@
         }
     }
 
-    function styleProperName(str){
-        var name = str.split('-');
-        if(name.length > 1){name[1] = name[1][0].toUpperCase() + name[1].substr(1);}
-        return name.join('');
-    }
-
     function getStyle(e, name) {
         return getComputedStyle(e).getPropertyValue(name);
     }
@@ -170,8 +121,7 @@
     function setStyle(e, name, val) {
         //properly set a style for an element
         if (e.nodeName == '#text') { return;}
-        var v = val;
-        var n = styleProperName(name);
+        var v = val, n = styleName(name);
         
         //check for empty value
         if (v == '' || v == null) { e.style[n] = v == '' ? null : v; return; }
@@ -192,15 +142,19 @@
 
     function getObj(obj) {
         //get a string from object (either string, number, or function)
-        if (typeof obj == 'function') {
+        if (isFunc(obj)) {
             //handle object as function (get value from object function execution)
             return getObj(obj());
         }
         return obj;
     }
 
-    function isArray(obj, arrayFunc) {
-        if (typeof obj.splice === 'function') {
+    function isArray(obj){
+        return typeof obj.splice === 'function';
+    }
+
+    function isArrayThen(obj, arrayFunc) {
+        if (isArray(obj)) {
             //handle content as array
             for (var x = 0; x < obj.length; x++) {
                 arrayFunc.call(this,obj[x]);
@@ -210,7 +164,21 @@
         return false;
     }
 
-    function isNumeric(str) { return !isNaN(parseFloat(str)) && isFinite(str); }
+    function isNumeric(str) { 
+        return !isNaN(parseFloat(str)) && isFinite(str); 
+    }
+
+    function isObj(obj){
+        return typeof obj == "object";
+    }
+
+    function isStr(obj){
+        return typeof obj == "string";
+    }
+
+    function isFunc(obj){
+        return typeof obj == "function";
+    }
 
     function diffArray(arr, remove) {
         return arr.filter(function (el) {
@@ -220,7 +188,7 @@
 
     function insertContent(obj, elements, stringFunc, objFunc) {
         //checks type of object and execute callback functions depending on object type
-        var type = typeof obj == 'string';
+        var type = isStr(obj);
         for(var x = 0;x<elements.length;x++){
             if(type){
                 stringFunc(elements[x]);
@@ -252,7 +220,6 @@
                 if (onLeave) { onLeave(e); }
             }
         });
-        el = null;
     }
 
     //prototype functions that are accessable by $(selector) //////////////////////////////////////////////////////////////////////////////////////
@@ -260,6 +227,7 @@
 
     select.prototype.push = function(elems){
         Array.prototype.push.apply(this, Array.prototype.slice.call(elems, 0, elems.length));
+        return this;
     }
 
     select.prototype.add = function (elems) {
@@ -296,7 +264,7 @@
                         }
                     });
                     //finally, change element classname if it was altered
-                    if (e.className != className) { e.className = className; }
+                    e.className = className;
                 } else {
                     e.className = classes;
                 }
@@ -309,7 +277,7 @@
         //Add content to the DOM after each elements in the collection. 
         //The content can be an HTML string, a DOM node or an array of nodes.
         var obj = getObj(content);
-        if (isArray(obj, this.after) || obj == null) { return this; }
+        if (isArrayThen(obj, this.after) || obj == null) { return this; }
 
         insertContent(obj, this, 
             function (e) { e.insertAdjacentHTML('afterend', obj); },
@@ -328,7 +296,7 @@
         //The content can be an HTML string, a DOM node or an array of nodes.
 
         var obj = getObj(content);
-        if (isArray.call(this, obj, this.append) || obj == null) { return this; }
+        if (isArrayThen.call(this, obj, this.append) || obj == null) { return this; }
         insertContent(obj, this,
             function (e) { e.insertAdjacentHTML('beforeend', obj); },
             function (e) { e.appendChild(obj); }
@@ -348,24 +316,20 @@
         //When value is given, sets the attribute to that value on each element 
         //in the collection. When value is null, the attribute is removed  = function(like with removeAttr). 
         //Multiple attributes can be set by passing an object with name-value pairs.
-        var n = getObj(name);
-        var v = getObj(val);
-        if (Array.isArray(n)) {
+        var n = getObj(name), v = getObj(val);
+        if (isArray(n)) {
             //get array of attribute values from first element
+            var attrs = {};
             if (this.length > 0) {
-                var e = this[0];
-                var attrs = {};
                 n.forEach(function (p) {
-                    attrs[p] = e.getAttribute(p);
+                    attrs[p] = this[0].getAttribute(p);
                 });
-                return attrs;
             } else {
-                var attrs = {};
                 n.forEach(function (p) {
                     attrs[p] = '';
                 });
-                return attrs;
             }
+            return attrs;
         } else {
             if (v != null) {
                 //set single attribute value to all elements in list
@@ -387,7 +351,7 @@
         //Add content to the DOM before each element in the collection. 
         //The content can be an HTML string, a DOM node or an array of nodes.
         var obj = getObj(content);
-        if(isArray(obj, this.before) || obj == null){return this;}
+        if(isArrayThen(obj, this.before) || obj == null){return this;}
 
         insertContent(obj, this,
             function (e) { e.insertAdjacentHTML('beforebegin', obj); },
@@ -396,19 +360,16 @@
         return this;
     }
 
-    select.prototype.children = function(selector) {
+    select.prototype.children = function(sel) {
         //Get immediate children of each element in the current collection. 
         //If selector is given, filter the results to only include ones matching the CSS select.
         var elems = [];
         var seltype = 0;
-        var sel = '';
-        if (selector != null) {
-            sel = parseInt(selector);
+        if (sel != null) {
             if (isNumeric(sel)) {
                 seltype = 1;
             } else {
                 seltype = 2;
-                sel = selector;
             }
         }
         this.forEach(function (e) {
@@ -417,19 +378,15 @@
                 elems.push(e.children[sel]);
             } else {
                 for (var x = 0; x < e.children.length; x++) {
-                    switch (seltype) {
-                        case 0: //no selector
+                    if(!seltype){ //no selector
+                        elems.push(e.children[x]);
+                    }else if(seltype == 2){ //match selector
+                        if (el.matches(sel)) {
                             elems.push(e.children[x]);
-                            break;
-                        case 2://match selector
-                            if (el.matches(sel)) {
-                                elems.push(e.children[x]);
-                            }
-                            break;
+                        }
                     }
                 }
             }
-            
         });
         return clone(elems);
     }
@@ -449,18 +406,18 @@
 
         //When a value for a property is blank  = function(empty string, null, or undefined), that property is removed. 
         //When a unitless number value is given, "px" is appended to it for properties that require units.
-        if (typeof params == "object") {
-            var hasKeys = false;
+        if (isObj(params)) {
+            var haskeys = false;
             for (var prop in params) {
-                //if params is an object with key/value pairs, apply styling to elements
-                if (!hasKeys) { hasKeys = true; }
+                //if params is an object with key/value pairs, apply styling to elements\
+                haskeys = true;
                 var name = styleName(prop);
                 this.forEach(function (e) {
                     setStyle(e, name, params[prop]);
                 });
             }
-            if (hasKeys) { return this; }
-            if (!hasKeys && Array.isArray(params)) {
+            if(haskeys){return this;}
+            if (isArray(params)) {
                 //if params is an array of style names, return an array of style values
                 var vals = [];
                 this.forEach(function (e) {
@@ -473,11 +430,10 @@
                 });
                 return vals;
             }
-
-        } else if (typeof params == 'string') {
+        } else if (isStr(params)) {
             var name = styleName(params);
             var arg = arguments[1];
-            if (typeof arg == 'string') {
+            if (isStr(arg)) {
                 //set a single style property if two string arguments are supplied (key, value);
                 this.forEach(function (e) {
                     setStyle(e, name, arg);
@@ -541,18 +497,18 @@
         return clone(elems);
     }
 
-    select.prototype.filter = function(selector) {
+    select.prototype.filter = function(sel) {
         //Filter the collection to contain only items that match the CSS select. 
         //If a select.prototype.is given, return only elements for which the select.prototype.returns a truthy value. 
         var elems = [];
-        if (typeof selector == 'function') {
+        if (isFunc(sel)) {
             //filter a boolean function
             this.forEach(function (e) {
-                if (selector.call(e, e) == true) { elems.push(e);}
+                if (sel.call(e, e) == true) { elems.push(e);}
             });
         } else {
             //filter selector string
-            var found = query(document, selector);
+            var found = query(document, sel);
             if (found.length > 0) {
                 this.forEach(function (e) {
                     if (found.indexOf(e) >= 0) {
@@ -565,12 +521,12 @@
         return clone(elems);
     }
 
-    select.prototype.find = function(selector) {
+    select.prototype.find = function(sel) {
         //Find elements that match CSS selector executed in scope of nodes in the current collection.
         var elems = [];
         if (this.length > 0) {
             this.forEach(function (e) {
-                var found = query(e, selector);
+                var found = query(e, sel);
                 if (found.length > 0) {
                     found.forEach(function (a) {
                         //make sure no duplicates are being added to the array
@@ -615,17 +571,21 @@
     select.prototype.hasClass = function(classes) {
         //Check if any elements in the collection have the specified class.
         var classList;
-        if(Array.isArray(classes)){
+        if(isArray(classes)){
             classList = classes;
-        }else if(typeof classes == 'string'){
+        }else if(isStr(classes)){
             classList = classes.split(' ');
         }
         for (var x = 0; x < this.length; x++) {
             var n = this[x].className || '';
-            if (typeof n == 'string') {
+            if (isStr(n)) {
                 var classNames = n.split(' ');
                 if (classNames.length > 0) {
-                    if (classList.every(function (a) { return classNames.some(function (b) { return a == b; }); })) {
+                    if (
+                        classList.every(function (a) { 
+                            return classNames.some(function (b) { return a == b; }); 
+                        })
+                    ){
                         return true;
                     }
                 }
@@ -642,7 +602,7 @@
         //of an element (when val is not specified). 
         //It simply returns vanilla js offsetHeight (as it should);
         var obj = getObj(val);
-        if (typeof obj == "string") {
+        if (isStr(obj)) {
             var n = parseFloat(obj);
             if (n != NaN) { obj = n; } else {
                 //height is string
@@ -843,7 +803,7 @@
         var sel = getObj(selector);
         var elems = this;
         //check if selector is an array (of selectors)
-        if (isArray(sel)) {
+        if (isArrayThen(sel)) {
             sel.forEach(function (s) {
                 var q = query(document, s);
                 elems = diffArray(elems, q);
@@ -1050,6 +1010,7 @@
                 el = el.parentNode;
             }
         });
+        console.log(elems);
         return clone(elems);
     }
 
@@ -1066,7 +1027,7 @@
         //Prepend content to the DOM inside each element in the collection. 
         //The content can be an HTML string, a DOM node or an array of nodes.
         var obj = getObj(content);
-        if (isArray(obj, this.append) || obj == null) { return this; }
+        if (isArrayThen(obj, this.append) || obj == null) { return this; }
 
 
         insertContent(obj, this,
@@ -1107,7 +1068,7 @@
         //reading values of properties that change with user interaction over time, such as checked and selected.
         var n = getObj(name);
         var v = getObj(val);
-        if (Array.isArray(n)) {
+        if (isArray(n)) {
             //get multiple properties from the first element
             var props = {};
             n.forEach(function (p) {
@@ -1301,7 +1262,7 @@
     select.prototype.removeAttr = function (attr) {
         //Remove an attribute from each element in the set of matched elements
         var obj = getObj(attr);
-        if (Array.isArray(obj)) {
+        if (isArray(obj)) {
             obj.forEach(function (a) {
                 this.forEach(function (e) {
                     e.removeAttribute(a);
@@ -1326,7 +1287,7 @@
                 obj = obj.split(' ');
             }
         }
-        if (Array.isArray(obj)) {
+        if (isArray(obj)) {
             this.forEach(function (e) {
                 obj.forEach(function (a) {
                     if (e.className) {
@@ -1452,7 +1413,7 @@
         };
         
         if (sel != null) {
-            if (Array.isArray(sel)) {
+            if (isArray(sel)) {
                 this.forEach(function (e) {
                     sel.forEach(function (s) {
                         find(e, s);
@@ -1502,7 +1463,7 @@
         if (typeof obj == 'string') {
             obj = obj.split(' ');
         }
-        if (Array.isArray(obj)) {
+        if (isArray(obj)) {
             this.forEach(function (e) {
                 var c = e.className;
                 var b = -1;

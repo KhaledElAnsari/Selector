@@ -1010,7 +1010,6 @@
                 el = el.parentNode;
             }
         });
-        console.log(elems);
         return clone(elems);
     }
 
